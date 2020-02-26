@@ -3,23 +3,37 @@ import GridWorld
 import random
 import matplotlib.pyplot as plt
 
+n_iters = 2500
+n_episodes = 50
 goal = [0, 11]
-env = gym.make('PuddleWorld-v0', goal=goal, algorithm='sarsa')
 reward_list = list()
 step_list = list()
-for i in range(2000):
-    steps = 0
-    rewards = 0
-    for j in range(50):
-        print(i, j)
-        curr_steps, reward = env.step('action')
-        steps += curr_steps
-        rewards += reward
-    reward_list.append(rewards / 50)
-    step_list.append(steps / 50)
 
-env.render(mode='human')
-print(step_list[-1])
+for i in range(n_iters):
+    reward_list.append(list())
+    step_list.append(list())
+
+env = gym.make('PuddleWorld-v0', goal=goal, algorithm='sarsa', lambda_l=0)
+
+for i in range(n_episodes):
+    env.reset()
+    for j in range(n_iters):
+        curr_steps, reward = env.step('action')
+        if j == 1:
+            print(reward, curr_steps)
+        reward_list[j].append(reward)
+        step_list[j].append(curr_steps)
+    env.step(action='update')
+
+avg_rewards = list()
+avg_steps = list()
+
+env.render()
+
+for i in range(n_iters):
+    avg_rewards.append(sum(reward_list[i]) / n_episodes)
+    avg_steps.append(sum(step_list[i]) / n_episodes)
+
 fig_rewards = plt.figure().add_subplot(111)
 fig_steps = plt.figure().add_subplot(111)
 
@@ -31,7 +45,7 @@ fig_steps.set_xlabel('Iterations')
 fig_steps.set_ylabel('Average Episode Length')
 fig_steps.title.set_text('Average Episode Length vs Time')
 
-fig_rewards.plot(range(2000), reward_list)
-fig_steps.plot(range(2000), step_list)
+fig_rewards.plot(range(n_iters), avg_rewards)
+fig_steps.plot(range(n_iters), avg_steps)
 
 plt.show()
