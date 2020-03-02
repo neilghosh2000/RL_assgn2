@@ -1,6 +1,7 @@
 import gym
 import random
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 
 
 class GridWorld(gym.Env):
@@ -20,7 +21,7 @@ class GridWorld(gym.Env):
                 q_list = list()
                 q_t = list()
                 e = list()
-                temp.append(0)
+                temp.append(-0.1)
                 for k in range(0, 4):
                     q_list.append(0)
                     q_t.append(0)
@@ -83,6 +84,7 @@ class GridWorld(gym.Env):
         col_shift = 0
         if x > 0.5:
             col_shift = 1
+        col_shift = 0
         if action == 0:
             if col_shift == 1 and col + 1 < self.cols:
                 return row-1, col+1
@@ -115,12 +117,13 @@ class GridWorld(gym.Env):
     def step(self, action):
         if action == 'update':
             return self.add_q_values(self.q_values)
-        if self.algo == 'sarsa':
-            return self.sarsa()
-        elif self.algo == 'sarsa_l':
-            return self.sarsa_l()
         else:
-            return self.q_learning()
+            if self.algo == 'sarsa':
+                return self.sarsa()
+            elif self.algo == 'sarsa_l':
+                return self.sarsa_l()
+            else:
+                return self.q_learning()
 
     def q_learning(self):
         start_index = random.randint(0, 3)
@@ -128,7 +131,6 @@ class GridWorld(gym.Env):
         total_reward = 0
         step = 0
         while True:
-            step += 1
             curr_row = current_state[0]
             curr_col = current_state[1]
             if curr_row == self.goal[0] and curr_col == self.goal[1]:
@@ -142,6 +144,7 @@ class GridWorld(gym.Env):
 
             if self.is_valid_action(curr_row, curr_col, action):
                 x = random.uniform(0, 1)
+                step += 1
                 if x > self.transition_prob:
                     next_row, next_col = self.get_next_state(curr_row, curr_col, action)
                     curr_q_val = q_list[action]
@@ -177,9 +180,9 @@ class GridWorld(gym.Env):
         total_reward = 0
         step = 0
         while True:
-            step += 1
             curr_row = current_state[0]
             curr_col = current_state[1]
+            step += 1
             # print('Row: ' + str(curr_row) + ',' + 'Col: ' + str(curr_col))
             if curr_row == self.goal[0] and curr_col == self.goal[1]:
                 break
@@ -255,10 +258,8 @@ class GridWorld(gym.Env):
                     curr_q_val = q_list[action]
                     reward = self.world[next_row][next_col]
                     total_reward += reward
-                    curr_q_val = self.sarsa_lambda_update(next_row, next_col, curr_row, curr_col, curr_q_val, action,
-                                                          reward)
-                    q_list[action] = curr_q_val
-                    self.q_values[(curr_row, curr_col)] = q_list
+                    delta = self.get_delta(next_row, next_col, curr_q_val, reward)
+                    self.sarsa_lambda_update(delta)
                     current_state = [next_row, next_col]
                 else:
                     random_action = self.get_random_action(action)
@@ -267,16 +268,13 @@ class GridWorld(gym.Env):
                         curr_q_val = q_list[action]
                         reward = self.world[next_row][next_col]
                         total_reward += reward
-                        curr_q_val = self.sarsa_lambda_update(next_row, next_col, curr_row, curr_col, curr_q_val,
-                                                              action,
-                                                              reward)
-                        q_list[action] = curr_q_val
-                        self.q_values[(curr_row, curr_col)] = q_list
+                        delta = self.get_delta(next_row, next_col, curr_q_val, reward)
+                        self.sarsa_lambda_update(delta)
                         current_state = [next_row, next_col]
 
         return step, total_reward
 
-    def sarsa_lambda_update(self, next_row, next_col, curr_row, curr_col, curr_q, action, reward):
+    def get_delta(self, next_row, next_col, curr_q, reward):
         next_q = self.q_values[(next_row, next_col)]
         while True:
             x = random.uniform(0, 1)
@@ -286,10 +284,16 @@ class GridWorld(gym.Env):
                 next_action = random.randint(0, 3)
             if self.is_valid_action(next_row, next_col, next_action):
                 break
-        curr_q = curr_q + self.alpha * self.eligibility_trace[(curr_row, curr_col)][action]*(reward + self.gamma *
-                                                                                             next_q[next_action]
-                                                                                             - curr_q)
-        return curr_q
+        delta = reward + self.gamma*next_q[next_action] - curr_q
+        return delta
+
+    def sarsa_lambda_update(self, delta):
+        for i in range(self.rows):
+            for j in range(self.cols):
+                q_list = self.q_values[(i, j)]
+                trace_list = self.eligibility_trace[(i, j)]
+                for k in range(0, 4):
+                    q_list[k] = q_list[k] + self.alpha*trace_list[k]*delta
 
     def update_trace(self, row, col, action):
         for i in range(self.rows):
@@ -320,10 +324,20 @@ class GridWorld(gym.Env):
                 for k in range(0, 4):
                     q_list.append(0)
                 self.q_values[(i, j)] = q_list
-        print('Reset successful')
 
     def render(self, mode='human'):
-        # plt.pcolormesh(self.world)
+        # world_t = list()
+        # for i in range(self.rows):
+        #     temp = list()
+        #     for j in range(self.cols):
+        #         temp.append(0)
+        #     world_t.append(temp)
+        # for i in range(self.rows):
+        #     for j in range(self.cols):
+        #         world_t[self.rows-1-i][j] = self.world[i][j]
+        # cmap = colors.ListedColormap([(0, 0, 0), (0.3, 0.3, 0.3), (0.6, 0.6, 0.6),
+        #                               (0.9, 0.9, 0.9), (1, 0, 0), (0, 0, 0.8)])
+        # plt.pcolor(world_t, cmap=cmap, edgecolors='k', linewidths=5)
         # plt.show()
         self.get_optimal_policy()
 

@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 n_iters = 2500
 n_episodes = 50
-goal = [0, 11]
+goal = [2, 9]
 reward_list = list()
 step_list = list()
 
@@ -13,21 +13,19 @@ for i in range(n_iters):
     reward_list.append(list())
     step_list.append(list())
 
-env = gym.make('PuddleWorld-v0', goal=goal, algorithm='sarsa', lambda_l=0)
+env = gym.make('PuddleWorld-v0', goal=goal, algorithm='q', lambda_l=0)
 
 for i in range(n_episodes):
     env.reset()
+    print(i)
     for j in range(n_iters):
         curr_steps, reward = env.step('action')
-        if j == 1:
-            print(reward, curr_steps)
         reward_list[j].append(reward)
         step_list[j].append(curr_steps)
     env.step(action='update')
 
 avg_rewards = list()
 avg_steps = list()
-
 env.render()
 
 for i in range(n_iters):
