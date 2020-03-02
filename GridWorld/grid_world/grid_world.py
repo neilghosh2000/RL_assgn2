@@ -84,7 +84,6 @@ class GridWorld(gym.Env):
         col_shift = 0
         if x > 0.5:
             col_shift = 1
-        col_shift = 0
         if action == 0:
             if col_shift == 1 and col + 1 < self.cols:
                 return row-1, col+1
