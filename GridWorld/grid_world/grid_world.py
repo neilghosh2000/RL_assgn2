@@ -21,7 +21,7 @@ class GridWorld(gym.Env):
                 q_list = list()
                 q_t = list()
                 e = list()
-                temp.append(-0.1)
+                temp.append(0)
                 for k in range(0, 4):
                     q_list.append(0)
                     q_t.append(0)
@@ -30,6 +30,11 @@ class GridWorld(gym.Env):
                 self.q_total[(i, j)] = q_t
                 self.eligibility_trace[(i, j)] = e
             self.world.append(temp)
+        # for i in range(12):
+        #     self.q_values[(0, i)][0] = -1
+        #     self.q_values[(11, i)][1] = -1
+        #     self.q_values[(i, 0)][2] = -1
+        #     self.q_values[(i, 11)][3] = -1
         self.goal = goal
         self.start_coords = [5, 6, 10, 11]
         self.epsilon = 0.1
@@ -206,7 +211,7 @@ class GridWorld(gym.Env):
                 else:
                     random_action = self.get_random_action(action)
                     if self.is_valid_action(curr_row, curr_col, random_action):
-                        next_row, next_col = self.get_next_state(curr_row, curr_col, action)
+                        next_row, next_col = self.get_next_state(curr_row, curr_col, random_action)
                         curr_q_val = q_list[action]
                         reward = self.world[next_row][next_col]
                         total_reward += reward
@@ -323,8 +328,17 @@ class GridWorld(gym.Env):
                 for k in range(0, 4):
                     q_list.append(0)
                 self.q_values[(i, j)] = q_list
+        # for i in range(12):
+        #     self.q_values[(0, i)][0] = -10
+        #     self.q_values[(11, i)][1] = -10
+        #     self.q_values[(i, 0)][2] = -10
+        #     self.q_values[(i, 11)][3] = -10
 
     def render(self, mode='human'):
+        print(self.q_total)
+        self.get_optimal_policy()
+
+    def get_optimal_policy(self):
         # world_t = list()
         # for i in range(self.rows):
         #     temp = list()
@@ -333,14 +347,12 @@ class GridWorld(gym.Env):
         #     world_t.append(temp)
         # for i in range(self.rows):
         #     for j in range(self.cols):
-        #         world_t[self.rows-1-i][j] = self.world[i][j]
-        # cmap = colors.ListedColormap([(0, 0, 0), (0.3, 0.3, 0.3), (0.6, 0.6, 0.6),
-        #                               (0.9, 0.9, 0.9), (1, 0, 0), (0, 0, 0.8)])
-        # plt.pcolor(world_t, cmap=cmap, edgecolors='k', linewidths=5)
-        # plt.show()
-        self.get_optimal_policy()
-
-    def get_optimal_policy(self):
+        #         world_t[self.rows - 1 - i][j] = self.world[i][j]
+        # plt.figure(figsize=(12, 12))
+        # color_map = colors.ListedColormap(
+        #     [(0, 0, 0), (0.3, 0.3, 0.3), (0.6, 0.6, 0.6), (0.9, 0.9, 0.9), (1, 0, 0), (0, 0, 0.8)])
+        # plt.pcolor(world_t, cmap=color_map, edgecolors='k', linewidth=5)
+        # ax = plt.axes()
         matrix_s = ''
         for i in range(12):
             row_s = '|'
@@ -350,15 +362,20 @@ class GridWorld(gym.Env):
                 opt_action = q_list.index(max(q_list))
                 if opt_action == 0:
                     s += '^'
+                    # ax.arrow(i+0.5, j+0.2, 0, 0.4, head_width=0.25, head_length=0.25, fc='g', ec='g')
                 elif opt_action == 1:
                     s += 'v'
+                    # ax.arrow(i + 0.5, j + 0.8, 0, -0.4, head_width=0.25, head_length=0.25, fc='g', ec='g')
                 elif opt_action == 2:
                     s += '<'
+                    # ax.arrow(i + 0.8, j + 0.5, -0.4, 0, head_width=0.25, head_length=0.25, fc='g', ec='g')
                 else:
                     s += '>'
+                    # ax.arrow(i + 0.2, j + 0.5, 0.4, 0, head_width=0.25, head_length=0.25, fc='g', ec='g')
                 s += '|'
                 row_s += s
             row_s += '\n'
             matrix_s += row_s
 
         print(matrix_s)
+        # plt.show()

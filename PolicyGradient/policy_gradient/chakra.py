@@ -3,9 +3,10 @@ from gym.envs.registration import register
 from gym.utils import seeding
 from gym import spaces
 import numpy as np
+import math
 
 
-class chakra(Env):
+class Chakra(Env):
     metadata = {
         'render.modes': ['human', 'rgb_array'],
         'video.frames_per_second': 50
@@ -24,8 +25,16 @@ class chakra(Env):
         return [seed]
 
     def _step(self, action):
-        #Fill your code here
-        return # Return the next state and the reward, along with 2 additional quantities : False, {}
+        # Fill your code here
+        dx = action[0]
+        dy = action[1]
+        next_x = self.state[0] + dx
+        next_y = self.state[1] + dy
+        self.state = np.array([next_x, next_y])
+        reward = (-1) * math.sqrt(next_x * next_x + next_y * next_y)
+        done = abs(reward) < 0.025
+        return [next_x, next_y], reward, done, {}
+        # Return the next state and the reward, along with 2 additional quantities : False, {}
 
     def _reset(self):
         while True:
@@ -74,8 +83,8 @@ class chakra(Env):
         return self.viewer.render(return_rgb_array=mode == 'rgb_array')
 
 
-register(
-    'chakra-v0',
-    entry_point='rlpa2.chakra:chakra',
-    timestep_limit=40,
-)
+# register(
+#     'chakra-v0',
+#     entry_point='PolicyGradient.policy_gradient:chakra',
+#     timestep_limit=40,
+# )
