@@ -32,7 +32,7 @@ class Chakra(Env):
         next_y = self.state[1] + dy
         self.state = np.array([next_x, next_y])
         reward = (-1) * math.sqrt(next_x * next_x + next_y * next_y)
-        done = abs(reward) < 0.025
+        done = abs(reward) < 0.1
         return [next_x, next_y], reward, done, {}
         # Return the next state and the reward, along with 2 additional quantities : False, {}
 

@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 n_iters = 25
 n_episodes = 50
-goal = [6, 7]
+goal = [0, 11]
 
 
 lambdas = [0, 0.3, 0.5, 0.9, 0.99, 1.0]
@@ -20,7 +20,7 @@ for i in range(len(lambdas)):
     curr_lambda = lambdas[i]
     curr_rewards = list()
     curr_steps = list()
-    env = gym.make('PuddleWorld-v0', goal=goal, algorithm='sarsa_l', lambda_l=curr_lambda)
+    env = gym.make('PuddleWorld-v0', goal=goal, algorithm='sarsa_l', lambda_l=curr_lambda, wind=True)
     for j in range(n_episodes):
         rewards_list = list()
         steps_list = list()
@@ -39,12 +39,12 @@ for i in range(len(lambdas)):
 fig_rewards.plot(lambdas, avg_rewards)
 fig_steps.plot(lambdas, avg_steps)
 
-fig_rewards.set_xlabel('Iterations')
+fig_rewards.set_xlabel('Lamda')
 fig_rewards.set_ylabel('Average Reward')
 fig_rewards.title.set_text('Average Reward vs Time')
 fig_rewards.legend(loc='lower right')
 
-fig_steps.set_xlabel('Iterations')
+fig_steps.set_xlabel('Lambda')
 fig_steps.set_ylabel('Average Episode Length')
 fig_steps.title.set_text('Average Episode Length vs Time')
 fig_steps.legend(loc='upper right')

@@ -5,9 +5,10 @@ import matplotlib.colors as colors
 
 
 class GridWorld(gym.Env):
-    def __init__(self, goal, algorithm, lambda_l):
+    def __init__(self, goal, algorithm, lambda_l, wind):
         print('Initialized')
         self.algo = algorithm
+        self.wind = wind
         self.world = list()
         self.q_values = {}
         self.rows = 12
@@ -21,7 +22,7 @@ class GridWorld(gym.Env):
                 q_list = list()
                 q_t = list()
                 e = list()
-                temp.append(0)
+                temp.append(-0.05)
                 for k in range(0, 4):
                     q_list.append(0)
                     q_t.append(0)
@@ -39,7 +40,7 @@ class GridWorld(gym.Env):
         self.start_coords = [5, 6, 10, 11]
         self.epsilon = 0.1
         self.gamma = 0.9
-        self.transition_prob = 0.9
+        self.transition_prob = 0.1
         self.alpha = 0.1
         self.eligibility_lambda = lambda_l
         self.setup_world()
@@ -87,28 +88,32 @@ class GridWorld(gym.Env):
     def get_next_state(self, row, col, action):
         x = random.uniform(0, 1)
         col_shift = 0
-        if x > 0.5:
+        if x > 0.5 and self.wind:
             col_shift = 1
         if action == 0:
-            if col_shift == 1 and col + 1 < self.cols:
-                return row-1, col+1
-            else:
-                return row-1, col
+            # if col_shift == 1 and col + 1 < self.cols:
+            #     return row-1, col+1
+            # else:
+            #     return row-1, col
+            return row - 1, col + col_shift
         elif action == 1:
-            if col_shift == 1 and col + 1 < self.cols:
-                return row+1, col + 1
-            else:
-                return row+1, col
+            # if col_shift == 1 and col + 1 < self.cols:
+            #     return row+1, col + 1
+            # else:
+            #     return row+1, col
+            return row + 1, col + col_shift
         elif action == 2:
-            if col_shift == 1 and col < self.cols:
-                return row, col
-            else:
-                return row, col-1
+            # if col_shift == 1 and col < self.cols:
+            #     return row, col
+            # else:
+            #     return row, col-1
+            return row, col - 1 + col_shift
         else:
-            if col_shift == 1 and col + 2 < self.cols:
-                return row, col+2
-            else:
-                return row, col+1
+            # if col_shift == 1 and col + 2 < self.cols:
+            #     return row, col+2
+            # else:
+            #     return row, col+1
+            return row, col + 1 + col_shift
 
     def get_random_action(self, action):
         new_action_list = list()
@@ -117,6 +122,9 @@ class GridWorld(gym.Env):
                 new_action_list.append(i)
         x = random.randint(0, 2)
         return new_action_list[x]
+
+    def is_invalid_state(self, row, col):
+        return row < 0 or row >= self.rows or col < 0 or col >= self.cols
 
     def step(self, action):
         if action == 'update':
@@ -137,6 +145,8 @@ class GridWorld(gym.Env):
         while True:
             curr_row = current_state[0]
             curr_col = current_state[1]
+            step += 1
+            # print('Row: ' + str(curr_row) + ',' + 'Col: ' + str(curr_col))
             if curr_row == self.goal[0] and curr_col == self.goal[1]:
                 break
             x = random.uniform(0, 1)
@@ -146,29 +156,39 @@ class GridWorld(gym.Env):
             else:
                 action = random.randint(0, 3)
 
-            if self.is_valid_action(curr_row, curr_col, action):
-                x = random.uniform(0, 1)
-                step += 1
-                if x > self.transition_prob:
-                    next_row, next_col = self.get_next_state(curr_row, curr_col, action)
+            x = random.uniform(0, 1)
+            if x > self.transition_prob:
+                next_row, next_col = self.get_next_state(curr_row, curr_col, action)
+                if not self.is_invalid_state(next_row, next_col):
                     curr_q_val = q_list[action]
                     reward = self.world[next_row][next_col]
                     total_reward += reward
                     curr_q_val = self.update_q_val(next_row, next_col, curr_q_val, reward)
                     q_list[action] = curr_q_val
-                    self.q_values[(curr_row, curr_col)] = q_list
                     current_state = [next_row, next_col]
                 else:
-                    random_action = self.get_random_action(action)
-                    if self.is_valid_action(curr_row, curr_col, random_action):
-                        next_row, next_col = self.get_next_state(curr_row, curr_col, action)
-                        curr_q_val = q_list[action]
-                        reward = self.world[next_row][next_col]
-                        total_reward += reward
-                        curr_q_val = self.update_q_val(next_row, next_col, curr_q_val, reward)
-                        q_list[action] = curr_q_val
-                        self.q_values[(curr_row, curr_col)] = q_list
-                        current_state = [next_row, next_col]
+                    current_state = [curr_row, curr_col]
+            else:
+                random_action = self.get_random_action(action)
+                next_row, next_col = self.get_next_state(curr_row, curr_col, random_action)
+                if not self.is_invalid_state(next_row, next_col):
+                    curr_q_val = q_list[action]
+                    reward = self.world[next_row][next_col]
+                    total_reward += reward
+                    curr_q_val = self.update_q_val(next_row, next_col, curr_q_val, reward)
+                    q_list[action] = curr_q_val
+                    current_state = [next_row, next_col]
+                else:
+                    current_state = [curr_row, curr_col]
+                # if self.is_valid_action(curr_row, curr_col, random_action):
+                #     next_row, next_col = self.get_next_state(curr_row, curr_col, random_action)
+                #     curr_q_val = q_list[action]
+                #     reward = self.world[next_row][next_col]
+                #     total_reward += reward
+                #     curr_q_val = self.sarsa_q_update(next_row, next_col, curr_q_val, reward)
+                #     q_list[action] = curr_q_val
+                #     self.q_values[(curr_row, curr_col)] = q_list
+                #     current_state = [next_row, next_col]
 
         return step, total_reward
 
@@ -197,41 +217,57 @@ class GridWorld(gym.Env):
             else:
                 action = random.randint(0, 3)
 
-            if self.is_valid_action(curr_row, curr_col, action):
-                x = random.uniform(0, 1)
-                if x > self.transition_prob:
-                    next_row, next_col = self.get_next_state(curr_row, curr_col, action)
+            x = random.uniform(0, 1)
+            if x > self.transition_prob:
+                next_row, next_col = self.get_next_state(curr_row, curr_col, action)
+                if not self.is_invalid_state(next_row, next_col):
                     curr_q_val = q_list[action]
                     reward = self.world[next_row][next_col]
                     total_reward += reward
                     curr_q_val = self.sarsa_q_update(next_row, next_col, curr_q_val, reward)
                     q_list[action] = curr_q_val
-                    self.q_values[(curr_row, curr_col)] = q_list
                     current_state = [next_row, next_col]
                 else:
-                    random_action = self.get_random_action(action)
-                    if self.is_valid_action(curr_row, curr_col, random_action):
-                        next_row, next_col = self.get_next_state(curr_row, curr_col, random_action)
-                        curr_q_val = q_list[action]
-                        reward = self.world[next_row][next_col]
-                        total_reward += reward
-                        curr_q_val = self.sarsa_q_update(next_row, next_col, curr_q_val, reward)
-                        q_list[action] = curr_q_val
-                        self.q_values[(curr_row, curr_col)] = q_list
-                        current_state = [next_row, next_col]
+                    current_state = [curr_row, curr_col]
+            else:
+                random_action = self.get_random_action(action)
+                next_row, next_col = self.get_next_state(curr_row, curr_col, random_action)
+                if not self.is_invalid_state(next_row, next_col):
+                    curr_q_val = q_list[action]
+                    reward = self.world[next_row][next_col]
+                    total_reward += reward
+                    curr_q_val = self.sarsa_q_update(next_row, next_col, curr_q_val, reward)
+                    q_list[action] = curr_q_val
+                    current_state = [next_row, next_col]
+                else:
+                    current_state = [curr_row, curr_col]
+                # if self.is_valid_action(curr_row, curr_col, random_action):
+                #     next_row, next_col = self.get_next_state(curr_row, curr_col, random_action)
+                #     curr_q_val = q_list[action]
+                #     reward = self.world[next_row][next_col]
+                #     total_reward += reward
+                #     curr_q_val = self.sarsa_q_update(next_row, next_col, curr_q_val, reward)
+                #     q_list[action] = curr_q_val
+                #     self.q_values[(curr_row, curr_col)] = q_list
+                #     current_state = [next_row, next_col]
 
         return step, total_reward
 
     def sarsa_q_update(self, next_row, next_col, curr_q, reward):
         next_q = self.q_values[(next_row, next_col)]
-        while True:
-            x = random.uniform(0, 1)
-            if x > self.epsilon:
-                next_action = next_q.index(max(next_q))
-            else:
-                next_action = random.randint(0, 3)
-            if self.is_valid_action(next_row, next_col, next_action):
-                break
+        # while True:
+        #     x = random.uniform(0, 1)
+        #     if x > self.epsilon:
+        #         next_action = next_q.index(max(next_q))
+        #     else:
+        #         next_action = random.randint(0, 3)
+        #     if self.is_valid_action(next_row, next_col, next_action):
+        #         break
+        x = random.uniform(0, 1)
+        if x > self.epsilon:
+            next_action = next_q.index(max(next_q))
+        else:
+            next_action = random.randint(0, 3)
         curr_q = curr_q + self.alpha * (reward + self.gamma * next_q[next_action] - curr_q)
         return curr_q
 
@@ -254,11 +290,10 @@ class GridWorld(gym.Env):
             else:
                 action = random.randint(0, 3)
 
-            if self.is_valid_action(curr_row, curr_col, action):
-                x = random.uniform(0, 1)
-                self.update_trace(curr_row, curr_col, action)
-                if x > self.transition_prob:
-                    next_row, next_col = self.get_next_state(curr_row, curr_col, action)
+            x = random.uniform(0, 1)
+            if x > self.transition_prob:
+                next_row, next_col = self.get_next_state(curr_row, curr_col, action)
+                if not self.is_invalid_state(next_row, next_col):
                     curr_q_val = q_list[action]
                     reward = self.world[next_row][next_col]
                     total_reward += reward
@@ -266,15 +301,19 @@ class GridWorld(gym.Env):
                     self.sarsa_lambda_update(delta)
                     current_state = [next_row, next_col]
                 else:
-                    random_action = self.get_random_action(action)
-                    if self.is_valid_action(curr_row, curr_col, random_action):
-                        next_row, next_col = self.get_next_state(curr_row, curr_col, action)
-                        curr_q_val = q_list[action]
-                        reward = self.world[next_row][next_col]
-                        total_reward += reward
-                        delta = self.get_delta(next_row, next_col, curr_q_val, reward)
-                        self.sarsa_lambda_update(delta)
-                        current_state = [next_row, next_col]
+                    current_state = [curr_row, curr_col]
+            else:
+                random_action = self.get_random_action(action)
+                next_row, next_col = self.get_next_state(curr_row, curr_col, random_action)
+                if not self.is_invalid_state(next_row, next_col):
+                    curr_q_val = q_list[action]
+                    reward = self.world[next_row][next_col]
+                    total_reward += reward
+                    delta = self.get_delta(next_row, next_col, curr_q_val, reward)
+                    self.sarsa_lambda_update(delta)
+                    current_state = [next_row, next_col]
+                else:
+                    current_state = [curr_row, curr_col]
 
         return step, total_reward
 
@@ -339,43 +378,35 @@ class GridWorld(gym.Env):
         self.get_optimal_policy()
 
     def get_optimal_policy(self):
-        # world_t = list()
-        # for i in range(self.rows):
-        #     temp = list()
-        #     for j in range(self.cols):
-        #         temp.append(0)
-        #     world_t.append(temp)
-        # for i in range(self.rows):
-        #     for j in range(self.cols):
-        #         world_t[self.rows - 1 - i][j] = self.world[i][j]
-        # plt.figure(figsize=(12, 12))
-        # color_map = colors.ListedColormap(
-        #     [(0, 0, 0), (0.3, 0.3, 0.3), (0.6, 0.6, 0.6), (0.9, 0.9, 0.9), (1, 0, 0), (0, 0, 0.8)])
-        # plt.pcolor(world_t, cmap=color_map, edgecolors='k', linewidth=5)
-        # ax = plt.axes()
+        plt.figure(figsize=(12, 12))
+        color_map = colors.ListedColormap(
+            [(0, 0, 0), (0.3, 0.3, 0.3), (0.6, 0.6, 0.6), (0.9, 0.9, 0.9), (1, 0, 0), (0, 0, 0.8)])
+        plt.pcolor(self.world, edgecolors='k', linewidth=5)
+        ax = plt.gca()
+        ax.invert_yaxis()
         matrix_s = ''
         for i in range(12):
             row_s = '|'
             for j in range(12):
                 s = ""
-                q_list = self.q_total[(i, j)]
+                q_list = self.q_total[(j, i)]
                 opt_action = q_list.index(max(q_list))
                 if opt_action == 0:
                     s += '^'
-                    # ax.arrow(i+0.5, j+0.2, 0, 0.4, head_width=0.25, head_length=0.25, fc='g', ec='g')
+                    ax.arrow(i + 0.5, j + 0.8, 0, -0.4, head_width=0.25, head_length=0.25, fc='g', ec='g')
                 elif opt_action == 1:
                     s += 'v'
-                    # ax.arrow(i + 0.5, j + 0.8, 0, -0.4, head_width=0.25, head_length=0.25, fc='g', ec='g')
+                    ax.arrow(i + 0.5, j + 0.2, 0, 0.4, head_width=0.25, head_length=0.25, fc='g', ec='g')
                 elif opt_action == 2:
                     s += '<'
-                    # ax.arrow(i + 0.8, j + 0.5, -0.4, 0, head_width=0.25, head_length=0.25, fc='g', ec='g')
+                    ax.arrow(i + 0.8, j + 0.5, -0.4, 0, head_width=0.25, head_length=0.25, fc='g', ec='g')
                 else:
                     s += '>'
-                    # ax.arrow(i + 0.2, j + 0.5, 0.4, 0, head_width=0.25, head_length=0.25, fc='g', ec='g')
+                    ax.arrow(i + 0.2, j + 0.5, 0.4, 0, head_width=0.25, head_length=0.25, fc='g', ec='g')
                 s += '|'
                 row_s += s
             row_s += '\n'
             matrix_s += row_s
 
         print(matrix_s)
-        # plt.show()
+        plt.show()

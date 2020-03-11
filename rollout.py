@@ -9,7 +9,7 @@ from gym.envs.registration import register
 def chakra_get_action(theta, ob, rng=np.random):
     ob_1 = include_bias(ob)
     mean = theta.dot(ob_1)
-    return rng.normal(loc=mean, scale=1.)		 
+    return (rng.normal(loc=mean, scale=1) - mean) * 0.025
 
 
 def get_log_policy(x, y):
@@ -56,11 +56,12 @@ def main(env_id):
 
     # Initialize parameters
     theta = rng.normal(scale=0.01, size=(action_dim, obs_dim + 1))
-    for itr in range(2000):
+    for itr in range(1):
         trajectory_count = 50
         trajectory_states = []
         trajectory_rewards = []
         for eps in range(trajectory_count):
+            print(itr, eps)
             gamma = 1
             ob = env.reset()
             done = False
@@ -75,24 +76,30 @@ def main(env_id):
                 actions.append(action)
                 next_ob, rew, done, _ = env.step(action)
                 ob = next_ob
-                if ob[0] < -1 or ob[0] > 1 or ob[1] < -1 or ob[1] > 1:
-                    env.reset()
-                # env.render(mode='human')
+                if abs(ob[0]) > 1 or abs(ob[1]) > 1:
+                    ob = env.reset()
+                    rewards.clear()
+                    states.clear()
+                    discounted_reward = 0
+                    gamma = 1
+                env.render(mode='human')
                 rewards.append(rew)
                 discounted_reward += gamma*rew
                 gamma *= 0.9
                 states.append(ob)
             grad = np.zeros(theta.shape)
+            curr_gamma = 1
+            print(states)
             for j in range(len(states)):
                 action = actions[j]
                 state = states[j]
                 reward = rewards[j]
                 mean = theta.dot(include_bias(state))
-                log_policy = get_log_policy(action, mean)
-                grad_policy = get_policy_gradient(log_policy, include_bias(state))
+                grad_policy = get_policy_gradient(action - mean, include_bias(state))
                 grad_policy = grad_policy / (np.linalg.norm(grad_policy))
-                grad += grad_policy
-                print(grad)
+                grad_policy = grad_policy*0.1*curr_gamma*discounted_reward
+                theta += grad_policy
+                curr_gamma *= 0.9
                 discounted_reward -= reward
                 discounted_reward /= 0.9
 
