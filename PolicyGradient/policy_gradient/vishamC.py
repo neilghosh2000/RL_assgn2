@@ -6,7 +6,7 @@ import numpy as np
 import math
 
 
-class vishamC(Env):
+class VishamC(Env):
     metadata = {
         'render.modes': ['human', 'rgb_array'],
         'video.frames_per_second': 50
@@ -31,8 +31,9 @@ class vishamC(Env):
         next_x = self.state[0] + dx
         next_y = self.state[1] + dy
         self.state = np.array([next_x, next_y])
-        reward = 0.5*next_x*next_x + self.gamma*0.5*next_y*next_y
-        return [next_x, next_y], reward, False, {}
+        reward = (-1) * (0.5*next_x*next_x + self.gamma*0.5*next_y*next_y)
+        done = abs(reward) < 0.1
+        return [next_x, next_y], reward, done, {}
         # Return the next state and the reward, along with 2 additional quantities : False, {}
 
     def _reset(self):
@@ -82,8 +83,8 @@ class vishamC(Env):
         return self.viewer.render(return_rgb_array=mode == 'rgb_array')
 
 
-register(
-    'vishamC-v0',
-    entry_point='policyGradient.policy_gradient:vishamC',
-    timestep_limit=40,
-)
+# register(
+#     'vishamC-v0',
+#     entry_point='policyGradient.policy_gradient:vishamC',
+#     timestep_limit=40,
+# )

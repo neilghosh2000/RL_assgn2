@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 n_iters = 25
 n_episodes = 50
-goal = [0, 11]
+goal = [2, 9]
 
 
 lambdas = [0, 0.3, 0.5, 0.9, 0.99, 1.0]
